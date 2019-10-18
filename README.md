@@ -1,3 +1,3 @@
-# CS 179GPU Programming
+# CS179 GPU Programming
 
 **http://courses.cms.caltech.edu/cs179/**
