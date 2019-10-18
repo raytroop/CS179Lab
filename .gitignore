@@ -2,3 +2,5 @@
 .vscode
 *.o
 *~
+lab1/audio-blur
+lab1/noaudio-blur
