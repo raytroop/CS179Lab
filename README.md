@@ -2,3 +2,4 @@
 
 **http://courses.cms.caltech.edu/cs179/**
 - [x] lab1
+- [x] lab2
