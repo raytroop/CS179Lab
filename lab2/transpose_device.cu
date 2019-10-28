@@ -53,13 +53,27 @@ void shmemTransposeKernel(const float *input, float *output, int n) {
     // padding). Again, comment on all sub-optimal accesses.
 
     // __shared__ float data[???];
+    __shared__ float data[64][64];
 
-    const int i = threadIdx.x + 64 * blockIdx.x;
+    int i = threadIdx.x + 64 * blockIdx.x;
     int j = 4 * threadIdx.y + 64 * blockIdx.y;
-    const int end_j = j + 4;
+    int end_j = j + 4;
 
     for (; j < end_j; j++)
-        output[j + n * i] = input[i + n * j];
+    {
+        data[threadIdx.x][4 * threadIdx.y + (4 - (end_j - j))] = input[i + n * j];
+    }
+
+    __syncthreads();
+
+    int p = threadIdx.x + 64 * blockIdx.y;      // caution!!!
+    int q = 4 * threadIdx.y + 64 * blockIdx.x;  // caution!!!
+    int end_q = q + 4;
+
+    for (; q < end_q; q++)
+    {
+        output[p + n * q] = data[4 * threadIdx.y + (4 - (end_q - q))][threadIdx.x];
+    }
 }
 
 __global__
@@ -68,12 +82,36 @@ void optimalTransposeKernel(const float *input, float *output, int n) {
     // Use any optimization tricks discussed so far to improve performance.
     // Consider ILP and loop unrolling.
 
-    const int i = threadIdx.x + 64 * blockIdx.x;
-    int j = 4 * threadIdx.y + 64 * blockIdx.y;
-    const int end_j = j + 4;
+    __shared__ float data[64][64];
 
-    for (; j < end_j; j++)
-        output[j + n * i] = input[i + n * j];
+    float var0;
+    float var1;
+    float var2;
+    float var3;
+    int i = threadIdx.x + 64 * blockIdx.x;
+    int j = 4 * threadIdx.y + 64 * blockIdx.y;
+
+    // ILP
+    var0 = input[i + n * j];
+    var1 = input[i + n * (j + 1)];
+    var2 = input[i + n * (j + 2)];
+    var3 = input[i + n * (j + 3)];
+
+    data[threadIdx.x][4 * threadIdx.y] = var0;
+    data[threadIdx.x][(4 * threadIdx.y) + 1] = var1;
+    data[threadIdx.x][(4 * threadIdx.y) + 2] = var2;
+    data[threadIdx.x][(4 * threadIdx.y) + 3] = var3;
+
+    __syncthreads();
+
+    int p = threadIdx.x + 64 * blockIdx.y;      // caution!!!
+    int q = 4 * threadIdx.y + 64 * blockIdx.x;  // caution!!!
+    int end_q = q + 4;
+
+    for (; q < end_q; q++)
+    {
+        output[p + n * q] = data[4 * threadIdx.y + (4 - (end_q - q))][threadIdx.x];
+    }
 }
 
 void cudaTranspose(
