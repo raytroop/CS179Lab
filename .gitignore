@@ -7,3 +7,5 @@ lab1/audio-blur
 lab1/noaudio-blur
 lab2/core
 lab2/transpose
+lab3/audio-fft
+lab3/noaudio-fft
